@@ -109,3 +109,5 @@ The application is configured via the `application.properties` file located in `
 
 Huỳnh Văn Đức An - HCMUTE
 
+Note: Not testing yet !!
+
