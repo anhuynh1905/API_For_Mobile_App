@@ -107,8 +107,5 @@ The application is configured via the `application.properties` file located in `
 
 ## Contributing
 
-Contributions are welcome! Please fork the repository and submit pull requests for any enhancements or bug fixes.
+Huỳnh Văn Đức An - HCMUTE
 
-## License
-
-This project is licensed under the [MIT License](LICENSE).
