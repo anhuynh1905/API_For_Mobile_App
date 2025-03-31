@@ -26,14 +26,13 @@ public class MediaServiceImpl implements MediaService {
         this.azureStorageService = azureStorageService;
     }
 
-    @Override
     public String uploadMedia(String username, MultipartFile file, MediaUploadRequest uploadRequest) {
-        // Verify that the user exists (optional, based on your application's needs)
+        // Verify that the user exists
         userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         // Upload file to Azure Blob Storage
-        String fileUrl = azureStorageService.uploadMediaFile(file);
+        String fileUrl = azureStorageService.uploadMediaFile(file, uploadRequest.getType());
 
         // Save media metadata to database
         Media media = new Media();
@@ -46,7 +45,6 @@ public class MediaServiceImpl implements MediaService {
         return fileUrl;
     }
 
-    @Override
     public List<MediaResponse> getUserMedia(String username) {
         List<Media> mediaList = mediaRepository.findAllByOwnerUsername(username);
         return mediaList.stream()
@@ -54,19 +52,18 @@ public class MediaServiceImpl implements MediaService {
                 .collect(Collectors.toList());
     }
 
-    @Override
     public MediaResponse getMediaDetails(String username, Long mediaId) {
         Media media = mediaRepository.findByIdAndOwnerUsername(mediaId, username)
                 .orElseThrow(() -> new RuntimeException("Media not found or access denied"));
         return new MediaResponse(media.getId(), media.getTitle(), media.getDescription(), media.getType(), media.getUrl());
     }
 
-    @Override
+    // Updated deleteMedia to pass media type
     public void deleteMedia(String username, Long mediaId) {
         Media media = mediaRepository.findByIdAndOwnerUsername(mediaId, username)
                 .orElseThrow(() -> new RuntimeException("Media not found or access denied"));
-        // Optionally, delete the file from Azure Blob Storage
-        azureStorageService.deleteMediaFile(media.getUrl());
+        // Pass media type to the azureStorageService so that the correct container is used
+        azureStorageService.deleteMediaFile(media.getUrl(), media.getType());
         mediaRepository.delete(media);
     }
 }
