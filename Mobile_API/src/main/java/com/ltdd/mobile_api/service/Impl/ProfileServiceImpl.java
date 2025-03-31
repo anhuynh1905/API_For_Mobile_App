@@ -42,7 +42,7 @@ public class ProfileServiceImpl implements ProfileService {
             throw new RuntimeException("User not found");
         }
         User user = userOpt.get();
-        String fileUrl = azureStorageService.uploadProfilePicture(file);
+        String fileUrl = azureStorageService.uploadMediaFile(file);
         user.setProfilePictureUrl(fileUrl);
         userRepository.save(user);
         return fileUrl;
