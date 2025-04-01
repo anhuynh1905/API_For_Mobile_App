@@ -11,4 +11,5 @@ public class MediaResponse {
     private String description;
     private String type;
     private String url;
+    private boolean isPublic;
 }

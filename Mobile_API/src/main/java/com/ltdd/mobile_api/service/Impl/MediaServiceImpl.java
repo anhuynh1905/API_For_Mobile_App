@@ -26,6 +26,7 @@ public class MediaServiceImpl implements MediaService {
         this.azureStorageService = azureStorageService;
     }
 
+    @Override
     public String uploadMedia(String username, MultipartFile file, MediaUploadRequest uploadRequest) {
         // Verify that the user exists
         userRepository.findByUsername(username)
@@ -41,29 +42,42 @@ public class MediaServiceImpl implements MediaService {
         media.setType(uploadRequest.getType()); // e.g., MUSIC or VIDEO
         media.setUrl(fileUrl);
         media.setOwnerUsername(username);
+        // Set whether media is public based on the upload request
+        media.setPublic(uploadRequest.isPublic());
         mediaRepository.save(media);
         return fileUrl;
     }
 
+    @Override
     public List<MediaResponse> getUserMedia(String username) {
         List<Media> mediaList = mediaRepository.findAllByOwnerUsername(username);
         return mediaList.stream()
-                .map(media -> new MediaResponse(media.getId(), media.getTitle(), media.getDescription(), media.getType(), media.getUrl()))
+                .map(media -> new MediaResponse(media.getId(), media.getTitle(), media.getDescription(), media.getType(), media.getUrl(), media.isPublic()))
                 .collect(Collectors.toList());
     }
 
+    @Override
     public MediaResponse getMediaDetails(String username, Long mediaId) {
         Media media = mediaRepository.findByIdAndOwnerUsername(mediaId, username)
                 .orElseThrow(() -> new RuntimeException("Media not found or access denied"));
-        return new MediaResponse(media.getId(), media.getTitle(), media.getDescription(), media.getType(), media.getUrl());
+        return new MediaResponse(media.getId(), media.getTitle(), media.getDescription(), media.getType(), media.getUrl(), media.isPublic());
     }
 
     // Updated deleteMedia to pass media type
+    @Override
     public void deleteMedia(String username, Long mediaId) {
         Media media = mediaRepository.findByIdAndOwnerUsername(mediaId, username)
                 .orElseThrow(() -> new RuntimeException("Media not found or access denied"));
         // Pass media type to the azureStorageService so that the correct container is used
         azureStorageService.deleteMediaFile(media.getUrl(), media.getType());
         mediaRepository.delete(media);
+    }
+
+    @Override
+    public List<MediaResponse> getAllPublicMedia() {
+        List<Media> publicMediaList = mediaRepository.findByIsPublicTrue();
+        return publicMediaList.stream()
+                .map(media -> new MediaResponse(media.getId(), media.getTitle(), media.getDescription(), media.getType(), media.getUrl(), media.isPublic()))
+                .collect(Collectors.toList());
     }
 }

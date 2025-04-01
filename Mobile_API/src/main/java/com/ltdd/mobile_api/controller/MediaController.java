@@ -53,4 +53,10 @@ public class MediaController {
         mediaService.deleteMedia(currentUser.getUsername(), id);
         return ResponseEntity.ok(new MessageResponse("Media deleted successfully"));
     }
+
+    @GetMapping("/public")
+    public ResponseEntity<List<MediaResponse>> getPublicMedia() {
+        List<MediaResponse> publicMediaList = mediaService.getAllPublicMedia();
+        return ResponseEntity.ok(publicMediaList);
+    }
 }

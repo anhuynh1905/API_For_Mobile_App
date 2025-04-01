@@ -14,4 +14,7 @@ public interface MediaService {
     MediaResponse getMediaDetails(String username, Long mediaId);
 
     void deleteMedia(String username, Long mediaId);
+
+    // New method to get all public media
+    List<MediaResponse> getAllPublicMedia();
 }

@@ -29,4 +29,8 @@ public class Media {
     // Username representing the owner of this media file
     @Column(nullable = false)
     private String ownerUsername;
+
+    // Determine if the media is public
+    @Column(nullable = false)
+    private boolean isPublic;
 }
