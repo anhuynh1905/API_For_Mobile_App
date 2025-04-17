@@ -1,19 +1,19 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
+# This workflow builds a Java project with Gradle located in a subdirectory,
+# skips tests, prepares the specific executable JAR, and deploys it to Azure Web App.
 
-name: Build and deploy JAR app to Azure Web App - musicAndVideo
+name: Build and Deploy Gradle Subdirectory Project to Azure Web App
 
 on:
   push:
     branches:
-      - main
+      - main # Or your deployment branch
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read #This is required for actions/checkout
+      contents: read # Required for actions/checkout
 
     steps:
       - uses: actions/checkout@v4
@@ -21,7 +21,7 @@ jobs:
       - name: Set up Java version
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
+          java-version: '21' # Ensure this matches your project's requirement
           distribution: 'microsoft'
 
       # Grant execute permission for gradlew inside the subdirectory
@@ -29,45 +29,86 @@ jobs:
         run: chmod +x ./gradlew
         working-directory: ./Mobile_API # Specify the subdirectory
 
-      # Build with Gradle inside the subdirectory
-      - name: Build with Gradle
-        run: ./gradlew build -x test # or ./gradlew bootJar if you prefer
+      # Build with Gradle, skipping the test task
+      - name: Build with Gradle (skipping tests)
+        run: ./gradlew build -x test
         working-directory: ./Mobile_API # Specify the subdirectory
+
+      # Find the executable JAR, rename it, and prepare for upload
+      - name: Prepare artifact for deployment
+        id: prep_artifact
+        run: |
+          ARTIFACT_DIR="Mobile_API/build/libs"
+          APP_NAME="Mobile_API" # Should match spring.application.name or your artifact base name
+          TARGET_JAR="app.jar" # The predictable name for the artifact
+
+          echo "Searching for JAR in $ARTIFACT_DIR"
+          cd $ARTIFACT_DIR
+
+          # Find the main executable JAR (assumes it doesn't end with -plain.jar or -sources.jar)
+          # Adjust the pattern if your naming convention is different
+          EXECUTABLE_JAR=$(find . -maxdepth 1 -name "${APP_NAME}-*.jar" ! -name "*-plain.jar" ! -name "*-sources.jar")
+
+          # Check if exactly one JAR was found
+          if [ $(echo "$EXECUTABLE_JAR" | wc -l) -ne 1 ]; then
+            echo "Error: Could not find a unique executable JAR matching '${APP_NAME}-*.jar' (excluding -plain and -sources)."
+            echo "Found:"
+            ls -1 *.jar # List all JARs to help debug
+            exit 1
+          fi
+
+          # Remove leading ./ if present
+          EXECUTABLE_JAR=$(basename "$EXECUTABLE_JAR")
+
+          echo "Found executable JAR: $EXECUTABLE_JAR"
+          # Copy the executable JAR to the root workspace with the target name
+          cp "$EXECUTABLE_JAR" "${{ github.workspace }}/$TARGET_JAR"
+          echo "Copied $EXECUTABLE_JAR to ${{ github.workspace }}/$TARGET_JAR"
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
-          name: java-app
-          # Update path for Gradle build output inside the subdirectory
-          path: '${{ github.workspace }}/Mobile_API/build/libs/*.jar'
+          name: java-app # Artifact name
+          # Upload only the renamed JAR from the workspace root
+          path: '${{ github.workspace }}/app.jar'
 
   deploy:
     runs-on: ubuntu-latest
-    needs: build
+    needs: build # Depends on the build job completing successfully
     environment:
-      name: 'Production'
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+      name: 'Production' # Name of the GitHub environment (optional, but good practice)
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }} # URL of the deployed app
     permissions:
-      id-token: write #This is required for requesting the JWT
-      contents: read #This is required for actions/checkout
+      id-token: write # Required for OIDC login to Azure
 
     steps:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
-          name: java-app
+          name: java-app # Must match the artifact name in the build job
+          # Artifact will be downloaded to the root of the workspace
+
+      - name: Verify downloaded artifact
+        run: ls -l
 
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_C5EDC7651DB0418DB0FAC8010ECB7A19 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_F6A0426010F54496A8BCF4D96A1497E7 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_FCF962B2A9B742B6AE856FA1F05996B0 }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_A3C0D37B14AD40E0BF76A9C2B4A43C9C }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_A7312619134F4395871A12DA057D6F47 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_5193D15D055843E891CDA29991509B1B }}
 
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'musicAndVideo'
-          slot-name: 'Production'
-          package: 'Mobile_API-*.jar' # This should still work as the downloaded artifact contains the JAR
+          app-name: 'musicAndVideo' # Name of your Azure Web App
+          slot-name: 'Production' # Deployment slot name
+          # Deploy the specific, predictably named JAR from the artifact
+          package: 'app.jar'
+
+      # Optional: logout step
+      # - name: logout from Azure
+      #   run: |
+      #     az logout
+      #     az account clear
