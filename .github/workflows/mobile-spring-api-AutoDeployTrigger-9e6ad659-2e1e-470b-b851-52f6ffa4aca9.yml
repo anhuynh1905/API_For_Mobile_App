@@ -36,13 +36,11 @@ jobs:
         uses: azure/container-apps-deploy-action@v2
         with:
           appSourcePath: ${{ github.workspace }}
-          _dockerfilePathKey_: Dockerfile   
+          dockerfilePath: Dockerfile   
           registryUsername: ${{ secrets.MOBILESPRINGAPI_REGISTRY_USERNAME }}
           registryPassword: ${{ secrets.MOBILESPRINGAPI_REGISTRY_PASSWORD }}
           containerAppName: mobile-spring-api
           resourceGroup: MobileApp
-          imageToBuild: default/[parameters('containerAppName')]:${{ github.sha }}
-          _buildArgumentsKey_: |
-            _buildArgumentsValues_
+          imageToBuild: mobile-spring-api:${{ github.sha }}
 
 
