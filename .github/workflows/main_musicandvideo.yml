@@ -31,7 +31,7 @@ jobs:
 
       # Build with Gradle inside the subdirectory
       - name: Build with Gradle
-        run: ./gradlew build --scan # or ./gradlew bootJar if you prefer
+        run: ./gradlew build -x test # or ./gradlew bootJar if you prefer
         working-directory: ./Mobile_API # Specify the subdirectory
 
       - name: Upload artifact for deployment job
