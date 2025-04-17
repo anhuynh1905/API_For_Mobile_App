@@ -41,6 +41,7 @@ jobs:
           registryPassword: ${{ secrets.MOBILESPRINGAPI_REGISTRY_PASSWORD }}
           containerAppName: mobile-spring-api
           resourceGroup: MobileApp
+          acrName: ${{ secrets.ACR_NAME }}
           imageToBuild: mobile-spring-api:${{ github.sha }}
 
 
