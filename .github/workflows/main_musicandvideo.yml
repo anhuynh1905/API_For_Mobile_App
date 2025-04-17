@@ -24,20 +24,22 @@ jobs:
           java-version: '21'
           distribution: 'microsoft'
 
-      # Grant execute permission for gradlew
+      # Grant execute permission for gradlew inside the subdirectory
       - name: Make gradlew executable
         run: chmod +x ./gradlew
+        working-directory: ./Mobile_API # Specify the subdirectory
 
-      # Build with Gradle instead of Maven
+      # Build with Gradle inside the subdirectory
       - name: Build with Gradle
         run: ./gradlew build # or ./gradlew bootJar if you prefer
+        working-directory: ./Mobile_API # Specify the subdirectory
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: java-app
-          # Update path for Gradle build output (usually build/libs)
-          path: '${{ github.workspace }}/build/libs/*.jar'
+          # Update path for Gradle build output inside the subdirectory
+          path: '${{ github.workspace }}/Mobile_API/build/libs/*.jar'
 
   deploy:
     runs-on: ubuntu-latest
