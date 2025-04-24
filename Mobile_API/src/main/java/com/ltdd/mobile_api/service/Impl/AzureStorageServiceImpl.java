@@ -1,9 +1,9 @@
 package com.ltdd.mobile_api.service.Impl;
 
+import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
-import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import com.ltdd.mobile_api.service.AzureStorageService;
@@ -31,8 +31,8 @@ public class AzureStorageServiceImpl implements AzureStorageService {
         this.blobServiceClient = new BlobServiceClientBuilder()
                 .connectionString(connectionString)
                 .buildClient();
-        this.musicContainer   = musicContainer;
-        this.videoContainer   = videoContainer;
+        this.musicContainer    = musicContainer;
+        this.videoContainer    = videoContainer;
         this.profilesContainer = profilesContainer;
     }
 
@@ -40,29 +40,26 @@ public class AzureStorageServiceImpl implements AzureStorageService {
     public String uploadMediaFile(MultipartFile file, String mediaType) {
         try {
             String containerName = mediaType.equalsIgnoreCase("MUSIC")
-                    ? musicContainer
-                    : videoContainer;
+                                 ? musicContainer
+                                 : videoContainer;
             BlobContainerClient container = blobServiceClient
                     .getBlobContainerClient(containerName);
 
-            // make sure container exists & is at least Blob‐public (optional)
-            // container.createIfNotExists();
-            // container.setAccessPolicy(PublicAccessType.BLOB, null);
-
+            // 1) Upload blob
             String fileName = "media-" + UUID.randomUUID() + "-" + file.getOriginalFilename();
             InputStream stream = file.getInputStream();
             container.getBlobClient(fileName)
                      .upload(stream, file.getSize(), true);
 
-            // Generate a read‐only SAS valid for 1 hour
+            // 2) Generate a read-only SAS valid for 1 hour
             BlobClient blobClient = container.getBlobClient(fileName);
-            BlobSasPermission perms = new BlobSasPermission()
-                    .setReadPermission(true);
+            BlobSasPermission perms = new BlobSasPermission().setReadPermission(true);
             OffsetDateTime expiry = OffsetDateTime.now().plusHours(1);
-            BlobServiceSasSignatureValues values = new BlobServiceSasSignatureValues(expiry, perms);
-            String sasToken = blobClient.generateSas(values);
+            BlobServiceSasSignatureValues sasValues =
+                    new BlobServiceSasSignatureValues(expiry, perms);
+            String sasToken = blobClient.generateSas(sasValues);
 
-            // Return the full URL including SAS
+            // 3) Return the full URL including the SAS token
             return blobClient.getBlobUrl() + "?" + sasToken;
         } catch (Exception e) {
             throw new RuntimeException("Failed to upload media file", e);
@@ -80,12 +77,13 @@ public class AzureStorageServiceImpl implements AzureStorageService {
             container.getBlobClient(fileName)
                      .upload(stream, file.getSize(), true);
 
-            // Generate SAS for profile pictures as well
+            // Generate SAS for profile picture
             BlobClient blobClient = container.getBlobClient(fileName);
             BlobSasPermission perms = new BlobSasPermission().setReadPermission(true);
             OffsetDateTime expiry = OffsetDateTime.now().plusHours(1);
-            BlobServiceSasSignatureValues values = new BlobServiceSasSignatureValues(expiry, perms);
-            String sasToken = blobClient.generateSas(values);
+            BlobServiceSasSignatureValues sasValues =
+                    new BlobServiceSasSignatureValues(expiry, perms);
+            String sasToken = blobClient.generateSas(sasValues);
 
             return blobClient.getBlobUrl() + "?" + sasToken;
         } catch (Exception e) {
@@ -97,13 +95,14 @@ public class AzureStorageServiceImpl implements AzureStorageService {
     public void deleteMediaFile(String fileUrl, String mediaType) {
         try {
             String containerName = mediaType.equalsIgnoreCase("MUSIC")
-                    ? musicContainer
-                    : videoContainer;
+                                 ? musicContainer
+                                 : videoContainer;
             BlobContainerClient container = blobServiceClient
                     .getBlobContainerClient(containerName);
 
+            // Strip SAS query if present, then delete
             String fileName = fileUrl.substring(fileUrl.lastIndexOf('/') + 1)
-                                 .split("\\?")[0]; // strip off any SAS
+                                     .split("\\?")[0];
             container.getBlobClient(fileName).delete();
         } catch (Exception e) {
             throw new RuntimeException("Failed to delete media file", e);
