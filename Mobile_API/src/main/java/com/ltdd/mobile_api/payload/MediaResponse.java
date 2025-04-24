@@ -1,5 +1,6 @@
 package com.ltdd.mobile_api.payload;
 
+import com.google.gson.annotations.SerializedName;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
