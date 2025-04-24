@@ -11,5 +11,6 @@ public class MediaResponse {
     private String description;
     private String type;
     private String url;
+    @SerializedName("public")
     private boolean isPublic;
 }
